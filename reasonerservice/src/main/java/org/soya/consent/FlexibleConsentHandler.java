@@ -1,11 +1,17 @@
 package org.soya.consent;
 
+import java.io.InputStream;
+import java.io.StringWriter;
 import java.util.*;
+
+import eu.ownyourdata.reasonerservice.ReasonerServiceController;
 import jakarta.json.*;
 import org.apache.jena.ontology.ObjectProperty;
 import org.apache.jena.ontology.OntClass;
 import org.apache.jena.ontology.OntModel;
 import org.apache.jena.rdf.model.*;
+import org.apache.jena.riot.Lang;
+import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.vocabulary.*;
 
 // TODO: clean class
@@ -13,14 +19,21 @@ public class FlexibleConsentHandler {
 
     public final static String CONSENT = "http://example.org/id/consent";
     public final static String NS = "https://soya.ownyourdata.eu/SimpleConsent/";
-
     public static final String DPV_NS = "http://www.w3.org/ns/dpv#";
     public static final String HANDLING = "http://example.org/id/handling";
-
     private final OntModel baseModel;
-    private Map<ObjectProperty, OntClass> consentProperties;
+    private final Map<ObjectProperty, OntClass> consentProperties;
+    private final JsonObject d2aJson;
+    private final JsonObject d3aJson;
+    private final Model d2aModel;
+    private final Model d3aModel;
 
-    public FlexibleConsentHandler(Model model) {
+    public FlexibleConsentHandler(JsonObject d2aJson, JsonObject d3aJson) throws UnregisteredTermException {
+
+        Model model = ModelFactory.createDefaultModel();
+        InputStream baseFileIS = FlexibleConsentHandler.class.getClassLoader().getResourceAsStream(Matching.BASE_FILE);
+        RDFDataMgr.read(model, baseFileIS, Lang.TURTLE);
+
         consentProperties = new HashMap<>();
         baseModel = ModelFactory.createOntologyModel();
         baseModel.add(model);
@@ -29,6 +42,15 @@ public class FlexibleConsentHandler {
             OntClass range = property.getRange().asClass();
             consentProperties.put(property, range);
         });
+
+        this.d2aJson = d2aJson;
+        this.d3aJson = d3aJson;
+
+        Resource d2aConsentResource = model.createResource(CONSENT);
+        Resource d3aConsentResource = model.createResource(HANDLING);
+
+        d2aModel = getConsent(d2aConsentResource, d2aJson);
+        d3aModel = getConsent(d3aConsentResource, d3aJson);
     }
 
     public Model getConsent(Resource consent, JsonObject object)
@@ -118,5 +140,27 @@ public class FlexibleConsentHandler {
         }
 
         return restrictionValue;
+    }
+
+    private static String modelToString(Model model) {
+        StringWriter writer = new StringWriter();
+        model.write(writer, Lang.TURTLE.getName());
+        return writer.toString();
+    }
+
+    public JsonObject getD2aJson() {
+        return d2aJson;
+    }
+
+    public JsonObject getD3aJson() {
+        return d3aJson;
+    }
+
+    public Model getD2aModel() {
+        return d2aModel;
+    }
+
+    public Model getD3aModel() {
+        return d3aModel;
     }
 }
