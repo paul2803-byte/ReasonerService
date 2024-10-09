@@ -1,0 +1,51 @@
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+<https://soya.ownyourdata.eu/SimpleConsent/Processing_1> a owl:Class;
+  rdfs:subClassOf <https://soya.ownyourdata.eu/SimpleConsent/Processing> .
+
+<https://soya.ownyourdata.eu/SimpleConsent/Processing_2_1> a owl:Class;
+  rdfs:subClassOf <https://soya.ownyourdata.eu/SimpleConsent/Processing_2> .
+
+<https://soya.ownyourdata.eu/SimpleConsent/Processing_2_2> a owl:Class;
+  rdfs:subClassOf <https://soya.ownyourdata.eu/SimpleConsent/Processing_2> .
+
+<https://soya.ownyourdata.eu/SimpleConsent/Purpose_1> a owl:Class;
+  rdfs:subClassOf <https://soya.ownyourdata.eu/SimpleConsent/Purpose> .
+
+<https://soya.ownyourdata.eu/SimpleConsent/Purpose_2_1> a owl:Class;
+  rdfs:subClassOf <https://soya.ownyourdata.eu/SimpleConsent/Purpose_2> .
+
+<https://soya.ownyourdata.eu/SimpleConsent/Purpose_2_2> a owl:Class;
+  rdfs:subClassOf <https://soya.ownyourdata.eu/SimpleConsent/Purpose_2> .
+
+<https://soya.ownyourdata.eu/SimpleConsent/hasProcessing> a owl:ObjectProperty;
+  rdfs:domain [ a owl:Class ;
+    owl:unionOf ( 
+      <https://soya.ownyourdata.eu/SimpleConsent/Consent>
+      <https://soya.ownyourdata.eu/SimpleConsent/DataHandling> 
+    ) ];
+  rdfs:range <https://soya.ownyourdata.eu/SimpleConsent/Processing> .
+
+<https://soya.ownyourdata.eu/SimpleConsent/hasPurpose> a owl:ObjectProperty;
+  rdfs:domain [ a owl:Class ;
+    owl:unionOf ( 
+      <https://soya.ownyourdata.eu/SimpleConsent/Consent>
+      <https://soya.ownyourdata.eu/SimpleConsent/DataHandling> 
+    ) ];
+  rdfs:range <https://soya.ownyourdata.eu/SimpleConsent/Purpose> .
+
+<https://soya.ownyourdata.eu/SimpleConsent/Consent> a owl:Class .
+
+<https://soya.ownyourdata.eu/SimpleConsent/DataHandling> a owl:Class .
+
+<https://soya.ownyourdata.eu/SimpleConsent/Processing_2> a owl:Class;
+  rdfs:subClassOf <https://soya.ownyourdata.eu/SimpleConsent/Processing> .
+
+<https://soya.ownyourdata.eu/SimpleConsent/Purpose_2> a owl:Class;
+  rdfs:subClassOf <https://soya.ownyourdata.eu/SimpleConsent/Purpose> .
+
+<https://soya.ownyourdata.eu/SimpleConsent/Processing> a owl:Class .
+
+<https://soya.ownyourdata.eu/SimpleConsent/Purpose> a owl:Class .
