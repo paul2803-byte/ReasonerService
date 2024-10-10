@@ -6,7 +6,6 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
-import com.clarkparsia.owlapi.explanation.BlackBoxExplanation;
 import jakarta.json.JsonArray;
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.rdf.model.Model;
@@ -14,7 +13,6 @@ import org.apache.jena.riot.Lang;
 import org.semanticweb.HermiT.ReasonerFactory;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.*;
-import org.semanticweb.owlapi.reasoner.NodeSet;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
 import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 import org.slf4j.Logger;
@@ -53,6 +51,8 @@ public class Matching {
             OWLReasoner r = rf.createReasoner(ontology);
             OWLAxiom axiom = df.getOWLSubClassOfAxiom(dataControllerCls, dataSubjectCls);
             boolean valid = r.isEntailed(axiom);
+
+            // TODO: check for time
 
             // if it cannot be entailed call the explanation function
             if (!valid) {
