@@ -1,4 +1,12 @@
 FROM openjdk:18
-MAINTAINER saquib.com
-COPY target/reasonerservice-0.0.1-SNAPSHOT.jar reasonerservice-0.0.1-SNAPSHOT.jar
-ENTRYPOINT ["java", "-jar", "reasonerservice-0.0.1-SNAPSHOT.jar"]
+MAINTAINER "Christoph Fabianek" christoph@ownyourdata.eu
+LABEL maintainer="Paul Feichtenschlager <feichtenschlager10@gmail.com>"
+
+RUN mkdir -p /usr/src/app
+WORKDIR /usr/src/app
+
+COPY target/*.jar /usr/src/app/
+
+CMD java -jar *.jar
+
+EXPOSE 8080 # TODO change port
