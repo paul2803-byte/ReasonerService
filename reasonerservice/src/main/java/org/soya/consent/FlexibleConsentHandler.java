@@ -33,24 +33,19 @@ public class FlexibleConsentHandler {
         Model model = ModelFactory.createDefaultModel();
         InputStream baseFileIS = FlexibleConsentHandler.class.getClassLoader().getResourceAsStream(Matching.BASE_FILE);
         RDFDataMgr.read(model, baseFileIS, Lang.TURTLE);
+        this.baseModel = ModelFactory.createOntologyModel();
+        this.baseModel.add(model);
 
-        consentProperties = new HashMap<>();
-        baseModel = ModelFactory.createOntologyModel();
-        baseModel.add(model);
-
-        baseModel.listObjectProperties().forEach(property -> {
+        this.consentProperties = new HashMap<>();
+        this.baseModel.listObjectProperties().forEach(property -> {
             OntClass range = property.getRange().asClass();
-            consentProperties.put(property, range);
+            this.consentProperties.put(property, range);
         });
 
         this.d2aJson = d2aJson;
         this.d3aJson = d3aJson;
-
-        Resource d2aConsentResource = model.createResource(CONSENT);
-        Resource d3aConsentResource = model.createResource(HANDLING);
-
-        d2aModel = getConsent(d2aConsentResource, d2aJson);
-        d3aModel = getConsent(d3aConsentResource, d3aJson);
+        this.d2aModel = getConsent(model.createResource(CONSENT), d2aJson);
+        this.d3aModel = getConsent(model.createResource(HANDLING), d3aJson);
     }
 
     public Model getConsent(Resource consent, JsonObject object)
@@ -140,12 +135,6 @@ public class FlexibleConsentHandler {
         }
 
         return restrictionValue;
-    }
-
-    private static String modelToString(Model model) {
-        StringWriter writer = new StringWriter();
-        model.write(writer, Lang.TURTLE.getName());
-        return writer.toString();
     }
 
     public JsonObject getD2aJson() {
