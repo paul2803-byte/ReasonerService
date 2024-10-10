@@ -14,6 +14,7 @@ import org.apache.jena.riot.Lang;
 import org.semanticweb.HermiT.ReasonerFactory;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.*;
+import org.semanticweb.owlapi.reasoner.NodeSet;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
 import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 import org.slf4j.Logger;
@@ -31,25 +32,29 @@ public class Matching {
         OWLDataFactory df = manager.getOWLDataFactory();
 
         try {
+            // create an ontology from the base file
             InputStream libraryIS = Matching.class.getClassLoader().getResourceAsStream(BASE_FILE);
             OWLOntology ontology = manager.loadOntologyFromOntologyDocument(libraryIS);
 
-            InputStream consentIS = IOUtils.toInputStream(modelToString(handle.getD2aModel()), "UTF-8");
-            ontology.addAxioms(manager.loadOntologyFromOntologyDocument(consentIS).axioms());
-            consentIS.close();
+            // add the d2a axioms to the ontology
+            InputStream d2aIS = IOUtils.toInputStream(modelToString(handle.getD2aModel()), "UTF-8");
+            ontology.addAxioms(manager.loadOntologyFromOntologyDocument(d2aIS).axioms());
+            d2aIS.close();
 
-            InputStream handlingIS = IOUtils.toInputStream(modelToString(handle.getD3aModel()), "UTF-8");
-            ontology.addAxioms(manager.loadOntologyFromOntologyDocument(handlingIS).axioms());
-            handlingIS.close();
+            // add the d3a axioms to the ontology
+            InputStream d3aIS = IOUtils.toInputStream(modelToString(handle.getD3aModel()), "UTF-8");
+            ontology.addAxioms(manager.loadOntologyFromOntologyDocument(d3aIS).axioms());
+            d3aIS.close();
 
+            // create subclass axiom and check if it can be entailed in the ontolgy
             OWLClass dataControllerCls = df.getOWLClass(IRI.create(FlexibleConsentHandler.HANDLING));
             OWLClass dataSubjectCls = df.getOWLClass(IRI.create(FlexibleConsentHandler.CONSENT));
-
             OWLReasonerFactory rf = new ReasonerFactory();
             OWLReasoner r = rf.createReasoner(ontology);
             OWLAxiom axiom = df.getOWLSubClassOfAxiom(dataControllerCls, dataSubjectCls);
-
             boolean valid = r.isEntailed(axiom);
+
+            // if it cannot be entailed call the explanation function
             if (!valid) {
                 return new ReasoningResult(false, findMismatch(r, df, handle));
             }
