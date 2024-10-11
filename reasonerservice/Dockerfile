@@ -9,4 +9,4 @@ COPY target/*.jar /usr/src/app/
 
 CMD java -jar *.jar
 
-EXPOSE 8080 # TODO change port
+EXPOSE 8081
