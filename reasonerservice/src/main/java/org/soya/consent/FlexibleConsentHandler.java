@@ -1,26 +1,19 @@
 package org.soya.consent;
 
-import java.io.InputStream;
-import java.io.StringWriter;
 import java.util.*;
 
-import eu.ownyourdata.reasonerservice.ReasonerServiceController;
 import jakarta.json.*;
 import org.apache.jena.ontology.ObjectProperty;
 import org.apache.jena.ontology.OntClass;
 import org.apache.jena.ontology.OntModel;
 import org.apache.jena.rdf.model.*;
-import org.apache.jena.riot.Lang;
-import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.vocabulary.*;
 
-// TODO: clean class
 public class FlexibleConsentHandler {
 
     public final static String CONSENT = "http://example.org/id/consent";
-    public final static String NS = "https://soya.ownyourdata.eu/SimpleConsent/";
-    public static final String DPV_NS = "http://www.w3.org/ns/dpv#";
     public static final String HANDLING = "http://example.org/id/handling";
+    private final String baseURL;
     private final OntModel baseModel;
     private final Map<ObjectProperty, OntClass> consentProperties;
     private final JsonObject d2aJson;
@@ -28,13 +21,9 @@ public class FlexibleConsentHandler {
     private final Model d2aModel;
     private final Model d3aModel;
 
-    public FlexibleConsentHandler(JsonObject d2aJson, JsonObject d3aJson) throws UnregisteredTermException {
+    public FlexibleConsentHandler(JsonObject d2aJson, JsonObject d3aJson, OntModel ontology, String baseURL) throws UnregisteredTermException {
 
-        Model model = ModelFactory.createDefaultModel();
-        InputStream baseFileIS = FlexibleConsentHandler.class.getClassLoader().getResourceAsStream(Matching.BASE_FILE);
-        RDFDataMgr.read(model, baseFileIS, Lang.TURTLE);
-        this.baseModel = ModelFactory.createOntologyModel();
-        this.baseModel.add(model);
+        this.baseModel = ontology;
 
         this.consentProperties = new HashMap<>();
         this.baseModel.listObjectProperties().forEach(property -> {
@@ -42,10 +31,11 @@ public class FlexibleConsentHandler {
             this.consentProperties.put(property, range);
         });
 
+        this.baseURL = baseURL;
         this.d2aJson = d2aJson;
         this.d3aJson = d3aJson;
-        this.d2aModel = getConsent(model.createResource(CONSENT), d2aJson);
-        this.d3aModel = getConsent(model.createResource(HANDLING), d3aJson);
+        this.d2aModel = getConsent(this.baseModel.createResource(CONSENT), d2aJson);
+        this.d3aModel = getConsent(this.baseModel.createResource(HANDLING), d3aJson);
     }
 
     public Model getConsent(Resource consent, JsonObject object)
@@ -120,15 +110,9 @@ public class FlexibleConsentHandler {
         if (input.isEmpty()) {
             restrictionValue = defaultValue; // empty means default!
         } else {
-            Resource resDPV;
-            if (input.startsWith("dpv:")) {
-                String inputValue = input.split(":")[1];
-                resDPV = baseModel.createResource(DPV_NS + inputValue);
-            } else {
-                resDPV = baseModel.createResource(NS + input);
-            }
-            if (baseModel.containsResource(resDPV)) {
-                restrictionValue = resDPV;
+            Resource res = baseModel.createResource(this.baseURL + input);
+            if (baseModel.containsResource(res)) {
+                restrictionValue = res;
             } else {
                 throw new UnregisteredTermException("'" + input + "' is not registered as terms of consent");
             }
@@ -151,5 +135,13 @@ public class FlexibleConsentHandler {
 
     public Model getD3aModel() {
         return d3aModel;
+    }
+
+    public String getBaseURL() {
+        return baseURL;
+    }
+
+    public OntModel getBaseModel() {
+        return baseModel;
     }
 }

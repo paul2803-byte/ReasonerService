@@ -52,6 +52,13 @@
             <type>pom</type>
         </dependency>
 
+        <!-- JSON LD -->
+        <dependency>
+            <groupId>com.apicatalog</groupId>
+            <artifactId>titanium-json-ld</artifactId>
+            <version>1.4.1</version>
+        </dependency>
+
         <!-- Jakarta JSON -->
         <dependency>
             <groupId>org.glassfish</groupId>
