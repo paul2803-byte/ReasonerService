@@ -1,5 +1,6 @@
 package org.soya.consent;
 
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -11,6 +12,10 @@ public class ReasoningResult {
     public ReasoningResult(boolean valid, List<String> violations){
         this.valid = valid;
         this.violations = violations;
+    }
+
+    public ReasoningResult(boolean valid, String violation) {
+        this(valid, new LinkedList<>(Collections.singletonList(violation)));
     }
 
     public ReasoningResult(boolean valid){

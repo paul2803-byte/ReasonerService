@@ -1,17 +1,15 @@
 package org.soya.consent;
 
-import java.io.InputStream;
-import java.io.StringWriter;
+import java.io.IOException;
 import java.util.*;
 
-import eu.ownyourdata.reasonerservice.ReasonerServiceController;
+import com.apicatalog.jsonld.JsonLd;
+import com.apicatalog.jsonld.JsonLdError;
 import jakarta.json.*;
 import org.apache.jena.ontology.ObjectProperty;
 import org.apache.jena.ontology.OntClass;
 import org.apache.jena.ontology.OntModel;
 import org.apache.jena.rdf.model.*;
-import org.apache.jena.riot.Lang;
-import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.vocabulary.*;
 
 // TODO: clean class
@@ -28,13 +26,9 @@ public class FlexibleConsentHandler {
     private final Model d2aModel;
     private final Model d3aModel;
 
-    public FlexibleConsentHandler(JsonObject d2aJson, JsonObject d3aJson) throws UnregisteredTermException {
+    public FlexibleConsentHandler(JsonObject d2aJson, JsonObject d3aJson, OntModel ontology) throws UnregisteredTermException, IOException {
 
-        Model model = ModelFactory.createDefaultModel();
-        InputStream baseFileIS = FlexibleConsentHandler.class.getClassLoader().getResourceAsStream(Matching.BASE_FILE);
-        RDFDataMgr.read(model, baseFileIS, Lang.TURTLE);
-        this.baseModel = ModelFactory.createOntologyModel();
-        this.baseModel.add(model);
+        this.baseModel = ontology;
 
         this.consentProperties = new HashMap<>();
         this.baseModel.listObjectProperties().forEach(property -> {
@@ -44,8 +38,8 @@ public class FlexibleConsentHandler {
 
         this.d2aJson = d2aJson;
         this.d3aJson = d3aJson;
-        this.d2aModel = getConsent(model.createResource(CONSENT), d2aJson);
-        this.d3aModel = getConsent(model.createResource(HANDLING), d3aJson);
+        this.d2aModel = getConsent(this.baseModel.createResource(CONSENT), d2aJson);
+        this.d3aModel = getConsent(this.baseModel.createResource(HANDLING), d3aJson);
     }
 
     public Model getConsent(Resource consent, JsonObject object)
