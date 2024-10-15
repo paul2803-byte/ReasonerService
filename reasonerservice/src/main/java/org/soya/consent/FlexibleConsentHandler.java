@@ -3,6 +3,8 @@ package org.soya.consent;
 import java.util.*;
 
 import jakarta.json.*;
+import org.apache.jena.base.Sys;
+import org.apache.jena.ontology.DatatypeProperty;
 import org.apache.jena.ontology.ObjectProperty;
 import org.apache.jena.ontology.OntClass;
 import org.apache.jena.ontology.OntModel;
@@ -16,6 +18,7 @@ public class FlexibleConsentHandler {
     private final String baseURL;
     private final OntModel baseModel;
     private final Map<ObjectProperty, OntClass> consentProperties;
+    private final List<DatatypeProperty> dataProporties;
     private final JsonObject d2aJson;
     private final JsonObject d3aJson;
     private final Model d2aModel;
@@ -30,7 +33,7 @@ public class FlexibleConsentHandler {
             OntClass range = property.getRange().asClass();
             this.consentProperties.put(property, range);
         });
-
+        this.dataProporties = this.baseModel.listDatatypeProperties().toList();
         this.baseURL = baseURL;
         this.d2aJson = d2aJson;
         this.d3aJson = d3aJson;
@@ -143,5 +146,13 @@ public class FlexibleConsentHandler {
 
     public OntModel getBaseModel() {
         return baseModel;
+    }
+
+    public Map<ObjectProperty, OntClass> getConsentProperties() {
+        return consentProperties;
+    }
+
+    public List<DatatypeProperty> getDataProporties() {
+        return dataProporties;
     }
 }
