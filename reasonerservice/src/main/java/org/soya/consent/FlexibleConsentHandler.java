@@ -3,11 +3,8 @@ package org.soya.consent;
 import java.util.*;
 
 import jakarta.json.*;
-import org.apache.jena.base.Sys;
-import org.apache.jena.ontology.DatatypeProperty;
-import org.apache.jena.ontology.ObjectProperty;
-import org.apache.jena.ontology.OntClass;
-import org.apache.jena.ontology.OntModel;
+
+import org.apache.jena.ontology.*;
 import org.apache.jena.rdf.model.*;
 import org.apache.jena.vocabulary.*;
 
@@ -17,8 +14,8 @@ public class FlexibleConsentHandler {
     public static final String HANDLING = "http://example.org/id/handling";
     private final String baseURL;
     private final OntModel baseModel;
-    private final Map<ObjectProperty, OntClass> consentProperties;
-    private final List<DatatypeProperty> dataProporties;
+    private final List<ObjectProperty> objectProperties;
+    private final List<DatatypeProperty> dataProperties;
     private final JsonObject d2aJson;
     private final JsonObject d3aJson;
     private final Model d2aModel;
@@ -26,14 +23,10 @@ public class FlexibleConsentHandler {
 
     public FlexibleConsentHandler(JsonObject d2aJson, JsonObject d3aJson, OntModel ontology, String baseURL) throws UnregisteredTermException {
 
+        // TODO: split class in data class and factory
         this.baseModel = ontology;
-
-        this.consentProperties = new HashMap<>();
-        this.baseModel.listObjectProperties().forEach(property -> {
-            OntClass range = property.getRange().asClass();
-            this.consentProperties.put(property, range);
-        });
-        this.dataProporties = this.baseModel.listDatatypeProperties().toList();
+        this.objectProperties = this.baseModel.listObjectProperties().toList();
+        this.dataProperties = this.baseModel.listDatatypeProperties().toList();
         this.baseURL = baseURL;
         this.d2aJson = d2aJson;
         this.d3aJson = d3aJson;
@@ -41,27 +34,32 @@ public class FlexibleConsentHandler {
         this.d3aModel = getConsent(this.baseModel.createResource(HANDLING), d3aJson);
     }
 
-    public Model getConsent(Resource consent, JsonObject object)
+    private Model getConsent(Resource consent, JsonObject object)
             throws UnregisteredTermException {
 
         Model consentModel = ModelFactory.createDefaultModel();
-
+        consentModel.setNsPrefix("xsd", "http://www.w3.org/2001/XMLSchema#");
         Resource equivClass = consentModel.createResource();
 
         RDFList policyList = null;
-        for (Map.Entry<ObjectProperty, OntClass> consentProperty : consentProperties.entrySet()) {
-            ObjectProperty op = consentProperty.getKey();
-            OntClass oc = consentProperty.getValue();
-            JsonValue value = object.get(op.getLocalName());
-            Resource bnode = setRestriction(consentModel, value.asJsonArray(), op, oc);
-
+        for (ObjectProperty cp : objectProperties) {
+            JsonValue value = object.get(cp.getLocalName());
+            Resource bnode = setObjectRestriction(consentModel, value.asJsonArray(), cp);
             if(policyList==null) {
                 policyList = consentModel.createList().with(bnode);
             } else {
                 policyList.add(bnode);
             }
         }
-
+        for (DatatypeProperty dp : dataProperties) {
+            JsonValue value = object.get(dp.getLocalName());
+            Resource bnode = setDataRestriction(consentModel, value, dp);
+            if(policyList==null) {
+                policyList = consentModel.createList().with(bnode);
+            } else {
+                policyList.add(bnode);
+            }
+        }
         equivClass.addProperty(OWL.intersectionOf, policyList);
 
         consentModel.add(consent, RDF.type, OWL.Class);
@@ -70,17 +68,14 @@ public class FlexibleConsentHandler {
         return consentModel;
     }
 
-    private Resource setRestriction(Model consentModel, JsonArray input, Property property, Resource defaultValue)
+    private Resource setObjectRestriction(Model consentModel, JsonArray input, ObjectProperty property)
             throws UnregisteredTermException {
 
-        Resource restriction = consentModel.createResource();
-        Resource value = getRestrictionValueOfList(consentModel, input, defaultValue);
-
-        restriction.addProperty(RDF.type, OWL.Restriction);
-        restriction.addProperty(OWL.onProperty, property);
-        restriction.addProperty(OWL.someValuesFrom, value);
-
-        return restriction;
+        Resource value = getRestrictionValueOfList(consentModel, input, property.getRange().asClass());
+        return consentModel.createResource()
+                .addProperty(RDF.type, OWL.Restriction)
+                .addProperty(OWL.onProperty, property)
+                .addProperty(OWL.someValuesFrom, value);
     }
 
     private Resource getRestrictionValueOfList(Model consentModel, JsonArray inputs, Resource defaultValue) throws UnregisteredTermException {
@@ -124,6 +119,35 @@ public class FlexibleConsentHandler {
         return restrictionValue;
     }
 
+    private Resource setDataRestriction(Model consentModel, JsonValue value, DatatypeProperty dp){
+
+        if(value.getValueType() == JsonValue.ValueType.NUMBER) {
+            JsonNumber jsonNum = (JsonNumber)value;
+            int intVal = jsonNum.intValue();
+
+            return consentModel.createResource()
+                    .addProperty(RDF.type, OWL.Restriction)
+                    .addProperty(OWL.onProperty, dp)
+                    .addProperty(OWL.someValuesFrom, getNumericRestriction(consentModel, intVal));
+        } else {
+            throw new IllegalArgumentException(String.format(
+                    "The value for %s must be numeric.", dp.getLocalName()));
+        }
+    }
+
+    private Resource getNumericRestriction(Model consentModel, int value) {
+        Resource expiration = consentModel.createResource().addProperty(
+                consentModel.createProperty("http://www.w3.org/2001/XMLSchema#maxInclusive"),
+                consentModel.createTypedLiteral(value));
+        Resource start = consentModel.createResource().addProperty(
+                consentModel.createProperty("http://www.w3.org/2001/XMLSchema#minInclusive"),
+                consentModel.createTypedLiteral(0));
+        RDFList restrictionsList = consentModel.createList(expiration, start);
+        return consentModel.createResource()
+                .addProperty(consentModel.createProperty(OWL.getURI()+"onDatatype"), XSD.integer)
+                .addProperty(consentModel.createProperty(OWL.getURI()+"withRestrictions"), restrictionsList);
+    }
+
     public JsonObject getD2aJson() {
         return d2aJson;
     }
@@ -148,11 +172,11 @@ public class FlexibleConsentHandler {
         return baseModel;
     }
 
-    public Map<ObjectProperty, OntClass> getConsentProperties() {
-        return consentProperties;
+    public List<ObjectProperty> getObjectProperties() {
+        return objectProperties;
     }
 
-    public List<DatatypeProperty> getDataProporties() {
-        return dataProporties;
+    public List<DatatypeProperty> getDataProperties() {
+        return dataProperties;
     }
 }
