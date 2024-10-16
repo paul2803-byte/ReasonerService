@@ -22,7 +22,7 @@ public class Matching {
     // TODO when data prop works include in reasoning
     private static final Logger log = LoggerFactory.getLogger(Matching.class);
 
-    public static ReasoningResult matchingString(FlexibleConsentHandler handle) {
+    public static ReasoningResult matchingString(Consent handle) {
 
         OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
         OWLDataFactory df = manager.getOWLDataFactory();
@@ -30,23 +30,23 @@ public class Matching {
         try {
             // create an ontology from the handle model
             OWLOntology ontology = manager.createOntology();
-            InputStream axiomsIS = IOUtils.toInputStream(modelToString(handle.getBaseModel()), "UTF-8");
+            InputStream axiomsIS = IOUtils.toInputStream(modelToString(handle.baseModel()), "UTF-8");
             ontology.addAxioms(manager.loadOntologyFromOntologyDocument(axiomsIS).axioms());
             axiomsIS.close();
 
             // add the d2a axioms to the ontology
-            InputStream d2aIS = IOUtils.toInputStream(modelToString(handle.getD2aModel()), "UTF-8");
+            InputStream d2aIS = IOUtils.toInputStream(modelToString(handle.d2aModel()), "UTF-8");
             ontology.addAxioms(manager.loadOntologyFromOntologyDocument(d2aIS).axioms());
             d2aIS.close();
 
             // add the d3a axioms to the ontology
-            InputStream d3aIS = IOUtils.toInputStream(modelToString(handle.getD3aModel()), "UTF-8");
+            InputStream d3aIS = IOUtils.toInputStream(modelToString(handle.d3aModel()), "UTF-8");
             ontology.addAxioms(manager.loadOntologyFromOntologyDocument(d3aIS).axioms());
             d3aIS.close();
 
             // create subclass axiom and check if it can be entailed in the ontology
-            OWLClass dataControllerCls = df.getOWLClass(IRI.create(FlexibleConsentHandler.HANDLING));
-            OWLClass dataSubjectCls = df.getOWLClass(IRI.create(FlexibleConsentHandler.CONSENT));
+            OWLClass dataControllerCls = df.getOWLClass(IRI.create(Consent.HANDLING));
+            OWLClass dataSubjectCls = df.getOWLClass(IRI.create(Consent.CONSENT));
             OWLReasonerFactory rf = new ReasonerFactory();
             OWLReasoner r = rf.createReasoner(ontology);
             OWLAxiom axiom = df.getOWLSubClassOfAxiom(dataControllerCls, dataSubjectCls);
@@ -60,7 +60,7 @@ public class Matching {
             if (!valid) {
                 violations.addAll(findMismatch(r, df, handle));
             }
-            return new ReasoningResult(violations.isEmpty(), violations);
+            return new ReasoningResult(valid, violations);
 
 
         } catch (Exception e) {
@@ -69,17 +69,17 @@ public class Matching {
         }
     }
 
-    private static List<String> findMismatch(OWLReasoner r, OWLDataFactory df, FlexibleConsentHandler handle) {
+    private static List<String> findMismatch(OWLReasoner r, OWLDataFactory df, Consent handle) {
 
         List<String> messages = new LinkedList<>();
-        handle.getObjectProperties().forEach(cp -> {
-            JsonArray d3aValues = handle.getD3aJson().getJsonArray(cp.getLocalName());
-            JsonArray d2aValues = handle.getD2aJson().getJsonArray(cp.getLocalName());
+        handle.baseModel().listObjectProperties().forEach(cp -> {
+            JsonArray d3aValues = handle.d3aJson().getJsonArray(cp.getLocalName());
+            JsonArray d2aValues = handle.d2aJson().getJsonArray(cp.getLocalName());
             List<String> invalidValues = new LinkedList<>();
             for (int i = 0; i < d3aValues.size(); i++) {
                 boolean valid = false;
                 for (int j = 0; j < d2aValues.size(); j++) {
-                    valid = valid || isSuperProperty(r, df, d3aValues.getString(i), d2aValues.getString(j), handle.getBaseURL());
+                    valid = valid || isSuperProperty(r, df, d3aValues.getString(i), d2aValues.getString(j), handle.baseURL());
                 }
                 if (!valid) {
                     invalidValues.add(d3aValues.getString(i));

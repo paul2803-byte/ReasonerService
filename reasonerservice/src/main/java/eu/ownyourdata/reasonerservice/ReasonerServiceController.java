@@ -11,7 +11,8 @@ import org.apache.jena.ontology.OntModel;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.Resource;
-import org.soya.consent.FlexibleConsentHandler;
+import org.soya.consent.Consent;
+import org.soya.consent.ConsentFactory;
 import org.soya.consent.Matching;
 import org.soya.consent.ReasoningResult;
 import org.springframework.http.HttpStatus;
@@ -63,7 +64,8 @@ public class ReasonerServiceController {
             String jsonLDAsString = fetchContent(ontologyURL);
             OntModel ontology = createOntology(jsonLDAsString);
             String baseURL = getBaseURL(jsonLDAsString);
-            FlexibleConsentHandler handle = new FlexibleConsentHandler(d2aConsent, d3aConsent, ontology, baseURL);
+            ConsentFactory consentFactory = new ConsentFactory();
+            Consent handle = consentFactory.createConsent(d2aConsent, d3aConsent, ontology, baseURL);
             ReasoningResult result = Matching.matchingString(handle);
             return new ResponseEntity<>(
                     createResponse(result),
