@@ -4,9 +4,11 @@ import java.io.*;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import jakarta.json.JsonArray;
 import org.apache.commons.io.IOUtils;
+import org.apache.jena.ontology.DatatypeProperty;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.riot.Lang;
 import org.semanticweb.HermiT.ReasonerFactory;
@@ -53,9 +55,6 @@ public class Matching {
             boolean valid = r.isEntailed(axiom);
 
             List<String> violations = new LinkedList<>();
-            // violations.addAll(checkForTime(handle));
-
-            ontology.saveOntology(System.out);
 
             if (!valid) {
                 violations.addAll(findMismatch(r, df, handle));
@@ -88,6 +87,16 @@ public class Matching {
             invalidValues.forEach(x -> messages.add(String.format(
                     "For the usage class %s, the value %s is requested by the consumer but not covered by the provider"
                     , cp.getLocalName(), x)));
+        });
+        handle.baseModel().listDatatypeProperties().forEach(dp -> {
+            int d3aValue = handle.d3aJson().getInt(dp.getLocalName());
+            int d2aValue = handle.d2aJson().getInt(dp.getLocalName());
+            // Maybe in the future include possibility that the d3a must be smaller
+            if(d3aValue > d2aValue) {
+                messages.add(String.format(
+                        "The d2a value for %s must be greater than the one for d3a", dp.getLocalName()
+                ));
+            }
         });
         return messages;
     }
